@@ -1,5 +1,5 @@
 🚀 Blazor Real-Time Chat com SignalR
-Este é um projeto de estudo desenvolvido em Blazor Web App (.NET 8/9) para demonstrar o poder da comunicação bi-direcional em tempo real utilizando ASP.NET Core SignalR.
+Este é um projeto de estudo desenvolvido em Blazor Web App (.NET 10) para demonstrar o poder da comunicação bi-direcional em tempo real utilizando ASP.NET Core SignalR.
 
 📝 Sobre o Projeto
 A aplicação permite que usuários entrem em uma sala global ou criem/entrem em salas privadas através de um ID único. O sistema gerencia a contagem de membros por sala e permite a troca de mensagens instantâneas sem a necessidade de atualizar a página.
@@ -16,7 +16,7 @@ Notificações de Sistema: Avisos visuais quando novos membros entram na sala.
 Interface Reativa: Construída inteiramente em C# com Blazor Interactive Server.
 
 🛠️ Tecnologias Utilizadas
-C# / .NET 8 (ou 9)
+C# / .NET 10
 
 Blazor (Interactive Server Mode)
 
