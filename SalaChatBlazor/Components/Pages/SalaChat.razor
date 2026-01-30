@@ -1,0 +1,145 @@
+﻿@page "/"
+@rendermode InteractiveServer
+@using Microsoft.AspNetCore.SignalR.Client
+@inject NavigationManager Navigation
+@implements IAsyncDisposable
+
+<PageTitle>Sala em Tempo Real</PageTitle>
+
+@if (!estaConectado)
+{
+    <div class="card p-4 shadow" style="max-width: 400px; margin: 20px auto;">
+        <h3>Portal de Entrada</h3>
+        <label>Seu Nome:</label>
+        <input @bind="nomeUsuario" @bind:event="oninput" class="form-control mb-2" placeholder="Ex: Evander..." />
+
+        <div class="border-top my-3 pt-3">
+            <p class="small text-muted">Deixe em branco para sala <strong>Geral</strong></p>
+            <label>ID da Sala (Opcional):</label>
+            <input @bind="idSalaEntrada" class="form-control mb-2" placeholder="ID da Sala..." />
+        </div>
+
+        <button class="btn btn-primary w-100" @onclick="Entrar" disabled="@(string.IsNullOrEmpty(nomeUsuario))">
+            Entrar no Chat
+        </button>
+    </div>
+}
+else
+{
+    <div class="container mt-4">
+        <div class="row">
+            <div class="col-md-4">
+                <div class="alert alert-info">
+                    <h5>Sala: @(string.IsNullOrEmpty(idSalaEntrada) ? "Geral" : idSalaEntrada)</h5>
+                    <strong>@totalPessoas pessoas online</strong>
+                </div>
+
+                <ul class="list-group mb-3">
+                    @foreach (var nome in listaUsuarios)
+                    {
+                        <li class="list-group-item">
+                            @nome @(nome == nomeUsuario ? "(Você)" : "")
+                        </li>
+                    }
+                </ul>
+            </div>
+
+            <div class="col-md-8">
+                <div class="chat-container mb-3" style="height: 400px; overflow-y: auto; border: 1px solid #ccc; padding: 15px; background: #fff; border-radius: 8px;">
+                    @foreach (var msg in mensagens)
+                    {
+                        <div class="mb-2">
+                            <span class="badge bg-secondary">@msg.Usuario</span>
+                            <span class="ms-2">@msg.Texto</span>
+                        </div>
+                    }
+                </div>
+
+                @if (!string.IsNullOrEmpty(alertaEntrada))
+                {
+                    <div class="alert alert-warning py-1 small">@alertaEntrada</div>
+                }
+
+                <div class="input-group">
+                    <input @bind="novaMensagem" @bind:event="oninput" @onkeypress="VerificarEnter" class="form-control" placeholder="Mensagem..." />
+                    <button class="btn btn-success" @onclick="Enviar">Enviar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private HubConnection? hubConnection;
+    private string? nomeUsuario;
+    private string? idSalaEntrada;
+    private bool estaConectado = false;
+
+    private List<ChatMessage> mensagens = new();
+    private string novaMensagem = "";
+    private string alertaEntrada = "";
+    private List<string> listaUsuarios = new();
+    private int totalPessoas = 0;
+
+    private async Task Entrar()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl(Navigation.ToAbsoluteUri("/chathub"))
+            .Build();
+
+        hubConnection.On<List<string>, int>("UpdateUsers", (nomes, total) =>
+        {
+            listaUsuarios = nomes;
+            totalPessoas = total;
+            InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<string, string>("ReceberMensagem", (usuario, texto) =>
+        {
+            mensagens.Add(new ChatMessage { Usuario = usuario, Texto = texto });
+            InvokeAsync(StateHasChanged);
+        });
+
+        hubConnection.On<string>("AvisoEntrada", async (msg) =>
+        {
+            alertaEntrada = msg;
+            InvokeAsync(StateHasChanged);
+            await Task.Delay(3000);
+            alertaEntrada = "";
+            InvokeAsync(StateHasChanged);
+        });
+
+        await hubConnection.StartAsync();
+        await hubConnection.SendAsync("EntrarNaSala", nomeUsuario, idSalaEntrada);
+
+        estaConectado = true;
+    }
+
+    private async Task Enviar()
+    {
+        if (!string.IsNullOrWhiteSpace(novaMensagem) && hubConnection is not null)
+        {
+            await hubConnection.SendAsync("EnviarMensagem", nomeUsuario, idSalaEntrada, novaMensagem);
+            novaMensagem = "";
+        }
+    }
+
+    private async Task VerificarEnter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter") await Enviar();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (hubConnection is not null)
+        {
+            await hubConnection.DisposeAsync();
+        }
+    }
+
+    public class ChatMessage
+    {
+        public string Usuario { get; set; } = "";
+        public string Texto { get; set; } = "";
+    }
+}
