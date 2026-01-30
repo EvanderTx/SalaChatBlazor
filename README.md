@@ -43,7 +43,7 @@ A aplicação permite que usuários entrem em uma sala global ou criem/entrem em
 ## Bash
 
 - git clone https://github.com/EvanderTx/SalaChatBlazor.git
-- cd nome-do-repositorio
+- cd SalaChatBlazor
 ## Executar a aplicação:
 
 ## Bash
